@@ -1,0 +1,28 @@
+name: smf-operator
+display-name: 5G SMF operator
+summary: 5G SMF operator
+description: 5G SMF operator
+
+containers:
+  smf:
+    resource: smf-image
+    mounts:
+      - storage: smf-volume
+        location: /etc/smf/
+
+resources:
+  smf-image:
+    type: oci-image
+    description: OCI image for 5G smf
+    upstream-source: omecproject/5gc-smf:master-6451e24
+
+storage:
+  smf-volume:
+    type: filesystem
+    minimum-size: 1M
+
+requires:
+  database:
+    interface: mongodb_client
+  nrf:
+    interface: nrf
