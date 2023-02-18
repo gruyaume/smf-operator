@@ -20,7 +20,7 @@ configuration:
   sbi:
     bindingIPv4: 0.0.0.0
     port: 29502
-    registerIPv4: smf
+    registerIPv4: {{ smf_url }}
     scheme: http
     tls:
       key: gofree5gc/support/TLS/smf.key
@@ -48,10 +48,10 @@ configuration:
       UPF:
         interfaces:
         - endpoints:
-          - upf
+          - {{ upf_url }}
           interfaceType: N3
           networkInstance: internet
-        node_id: upf
+        node_id: {{ upf_url }}
         sNssaiUpfInfos:
         - dnnUpfInfoList:
           - dnn: internet

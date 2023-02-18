@@ -26,3 +26,5 @@ requires:
     interface: mongodb_client
   nrf:
     interface: nrf
+  upf:
+    interface: upf

@@ -12,6 +12,7 @@ from typing import Dict, Optional, Union
 from charms.data_platform_libs.v0.data_interfaces import DatabaseCreatedEvent, DatabaseRequires
 from charms.nrf_operator.v0.nrf import NRFAvailableEvent, NRFRequires
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
+from charms.upf_operator.v0.upf import UPFAvailableEvent, UPFRequires
 from jinja2 import Environment, FileSystemLoader
 from lightkube.models.core_v1 import ServicePort
 from ops.charm import CharmBase, InstallEvent, PebbleReadyEvent
@@ -40,11 +41,13 @@ class SMFOperatorCharm(CharmBase):
             self, relation_name="database", database_name=SMF_DATABASE_NAME
         )
         self._nrf_requires = NRFRequires(charm=self, relationship_name="nrf")
+        self._upf_requires = UPFRequires(charm=self, relationship_name="upf")
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.smf_pebble_ready, self._on_smf_pebble_ready)
         self.framework.observe(self.on.database_relation_joined, self._on_smf_pebble_ready)
         self.framework.observe(self._database.on.database_created, self._on_database_created)
         self.framework.observe(self._nrf_requires.on.nrf_available, self._on_nrf_available)
+        self.framework.observe(self._upf_requires.on.upf_available, self._on_upf_available)
         self._service_patcher = KubernetesServicePatch(
             charm=self,
             ports=[
@@ -71,12 +74,22 @@ class SMFOperatorCharm(CharmBase):
             self.unit.status = BlockedStatus("Waiting for NRF relation to be created")
             event.defer()
             return
+        if not self._upf_relation_is_created:
+            self.unit.status = BlockedStatus("Waiting for UPF relation to be created")
+            event.defer()
+            return
         if not self._nrf_data_is_available:
             self.unit.status = WaitingStatus("Waiting for NRF data to be available")
             event.defer()
             return
+        if not self._upf_data_is_available:
+            self.unit.status = WaitingStatus("Waiting for UPF data to be available")
+            event.defer()
+            return
         self._write_config_file(
-            default_database_url=event.uris.split(",")[0], nrf_url=self._nrf_requires.get_nrf_url()
+            default_database_url=event.uris.split(",")[0],
+            nrf_url=self._nrf_requires.get_nrf_url(),
+            upf_url=self._upf_requires.get_upf_url(),
         )
         self._on_smf_pebble_ready(event)
 
@@ -89,20 +102,60 @@ class SMFOperatorCharm(CharmBase):
             self.unit.status = BlockedStatus("Waiting for database relation to be created")
             event.defer()
             return
+        if not self._upf_relation_is_created:
+            self.unit.status = BlockedStatus("Waiting for UPF relation to be created")
+            event.defer()
+            return
         if not self._database_is_available:
             self.unit.status = WaitingStatus("Waiting for database to be available")
             event.defer()
             return
+        if not self._upf_data_is_available:
+            self.unit.status = WaitingStatus("Waiting for UPF data to be available")
+            event.defer()
+            return
         self._write_config_file(
-            default_database_url=self._database_data["uris"].split(",")[0], nrf_url=event.url
+            default_database_url=self._database_data["uris"].split(",")[0],
+            nrf_url=event.url,
+            upf_url=self._upf_requires.get_upf_url(),
         )
         self._on_smf_pebble_ready(event)
 
-    def _write_config_file(self, default_database_url: str, nrf_url: str) -> None:
+    def _on_upf_available(self, event: UPFAvailableEvent) -> None:
+        if not self._container.can_connect():
+            self.unit.status = WaitingStatus("Waiting for container to be ready")
+            event.defer()
+            return
+        if not self._database_relation_is_created:
+            self.unit.status = BlockedStatus("Waiting for database relation to be created")
+            event.defer()
+            return
+        if not self._nrf_relation_is_created:
+            self.unit.status = BlockedStatus("Waiting for NRF relation to be created")
+            event.defer()
+            return
+        if not self._database_is_available:
+            self.unit.status = WaitingStatus("Waiting for database to be available")
+            event.defer()
+            return
+        if not self._nrf_data_is_available:
+            self.unit.status = WaitingStatus("Waiting for NRF data to be available")
+            event.defer()
+            return
+        self._write_config_file(
+            default_database_url=self._database_data["uris"].split(",")[0],
+            nrf_url=self._nrf_requires.get_nrf_url(),
+            upf_url=event.url,
+        )
+        self._on_smf_pebble_ready(event)
+
+    def _write_config_file(self, default_database_url: str, nrf_url: str, upf_url: str) -> None:
         jinja2_environment = Environment(loader=FileSystemLoader("src/templates/"))
         template = jinja2_environment.get_template("smfcfg.yaml.j2")
         content = template.render(
             nrf_url=nrf_url,
+            upf_url=upf_url,
+            smf_url=self._smf_hostname,
             pod_ip=self._pod_ip,
             smf_database_name=SMF_DATABASE_NAME,
             default_database_name=DEFAULT_DATABASE_NAME,
@@ -125,6 +178,17 @@ class SMFOperatorCharm(CharmBase):
             bool: Whether the NRF data is available.
         """
         if not self._nrf_requires.get_nrf_url():
+            return False
+        return True
+
+    @property
+    def _upf_data_is_available(self) -> bool:
+        """Returns whether the UPF data is available.
+
+        Returns:
+            bool: Whether the UPF data is available.
+        """
+        if not self._upf_requires.get_upf_url():
             return False
         return True
 
@@ -156,14 +220,22 @@ class SMFOperatorCharm(CharmBase):
         logger.info("Config file is written")
         return True
 
+    @property
+    def _smf_hostname(self) -> str:
+        return f"{self.model.app.name}.{self.model.name}.svc.cluster.local"
+
     def _on_smf_pebble_ready(
-        self, event: Union[PebbleReadyEvent, DatabaseCreatedEvent, NRFAvailableEvent]
+        self,
+        event: Union[PebbleReadyEvent, DatabaseCreatedEvent, NRFAvailableEvent, UPFAvailableEvent],
     ) -> None:
         if not self._database_relation_is_created:
             self.unit.status = BlockedStatus("Waiting for database relation to be created")
             return
         if not self._nrf_relation_is_created:
             self.unit.status = BlockedStatus("Waiting for NRF relation to be created")
+            return
+        if not self._upf_relation_is_created:
+            self.unit.status = BlockedStatus("Waiting for UPF relation to be created")
             return
         if not self._container.can_connect():
             self.unit.status = WaitingStatus("Waiting for container to be ready")
@@ -183,6 +255,10 @@ class SMFOperatorCharm(CharmBase):
     @property
     def _nrf_relation_is_created(self) -> bool:
         return self._relation_created("nrf")
+
+    @property
+    def _upf_relation_is_created(self) -> bool:
+        return self._relation_created("upf")
 
     def _relation_created(self, relation_name: str) -> bool:
         """Returns whether a given Juju relation was crated.

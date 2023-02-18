@@ -52,9 +52,7 @@ class TestCharm(unittest.TestCase):
 
     @patch("ops.model.Container.push")
     def test_given_when_on_install_then_uerouting_config_file_is_written(self, patch_push):
-
         self.harness.charm._on_install(event=Mock())
-
 
     @patch("charm.check_output")
     @patch("ops.model.Container.push")
