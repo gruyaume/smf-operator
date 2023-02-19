@@ -1,0 +1,144 @@
+configuration:
+  debugProfilePort: 5001
+  enableDBStore: false
+  enableUPFAdapter: false
+  kafkaInfo:
+    brokerPort: 9092
+    brokerUri: sd-core-kafka-headless
+    topicName: sdcore-data-source-smf
+  mongodb:
+    name: {{ default_database_name }}
+    url: {{ database_url }}
+  nfKafka:
+    enable: false
+    topic: sdcore-nf-data-source
+    urls:
+    - sd-core-kafka-headless:9092
+  nrfUri: {{ nrf_url }}
+  pfcp:
+    addr: {{ pod_ip }}
+  sbi:
+    bindingIPv4: 0.0.0.0
+    port: 29502
+    registerIPv4: {{ smf_url }}
+    scheme: http
+    tls:
+      key: gofree5gc/support/TLS/smf.key
+      pem: gofree5gc/support/TLS/smf.pem
+  serviceNameList:
+  - nsmf-pdusession
+  - nsmf-event-exposure
+  smfDBName: {{ smf_database_name }}
+  smfName: SMF
+  snssaiInfos:
+  - dnnInfos:
+    - dnn: internet
+      dns:
+        ipv4: 8.8.8.8
+        ipv6: 2001:4860:4860::8888
+      ueSubnet: 172.250.0.0/16
+    sNssai:
+      sd: "010203"
+      sst: 1
+  userplane_information:
+    links:
+    - A: gNB1
+      B: UPF
+    up_nodes:
+      UPF:
+        interfaces:
+        - endpoints:
+          - {{ upf_url }}
+          interfaceType: N3
+          networkInstance: internet
+        node_id: {{ upf_url }}
+        sNssaiUpfInfos:
+        - dnnUpfInfoList:
+          - dnn: internet
+          plmnId:
+            mcc: "208"
+            mnc: "93"
+          sNssai:
+            sd: "010203"
+            sst: 1
+        - dnnUpfInfoList:
+          - dnn: internet
+          plmnId:
+            mcc: "208"
+            mnc: "93"
+          sNssai:
+            sd: "112233"
+            sst: 1
+        type: UPF
+      gNB1:
+        type: AN
+info:
+  description: SMF initial local configuration
+  version: 1.0.0
+logger:
+  AMF:
+    ReportCaller: false
+    debugLevel: info
+  AUSF:
+    ReportCaller: false
+    debugLevel: info
+  Aper:
+    ReportCaller: false
+    debugLevel: info
+  CommonConsumerTest:
+    ReportCaller: false
+    debugLevel: info
+  FSM:
+    ReportCaller: false
+    debugLevel: info
+  MongoDBLibrary:
+    ReportCaller: false
+    debugLevel: info
+  N3IWF:
+    ReportCaller: false
+    debugLevel: info
+  NAS:
+    ReportCaller: false
+    debugLevel: info
+  NGAP:
+    ReportCaller: false
+    debugLevel: info
+  NRF:
+    ReportCaller: false
+    debugLevel: info
+  NamfComm:
+    ReportCaller: false
+    debugLevel: info
+  NamfEventExposure:
+    ReportCaller: false
+    debugLevel: info
+  NsmfPDUSession:
+    ReportCaller: false
+    debugLevel: info
+  NudrDataRepository:
+    ReportCaller: false
+    debugLevel: info
+  OpenApi:
+    ReportCaller: false
+    debugLevel: info
+  PCF:
+    ReportCaller: false
+    debugLevel: info
+  PFCP:
+    ReportCaller: false
+    debugLevel: info
+  PathUtil:
+    ReportCaller: false
+    debugLevel: info
+  SMF:
+    ReportCaller: false
+    debugLevel: info
+  UDM:
+    ReportCaller: false
+    debugLevel: info
+  UDR:
+    ReportCaller: false
+    debugLevel: info
+  WEBUI:
+    ReportCaller: false
+    debugLevel: info
