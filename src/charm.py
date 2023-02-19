@@ -45,6 +45,7 @@ class SMFOperatorCharm(CharmBase):
         self.framework.observe(self.on.install, self._on_install)
         self.framework.observe(self.on.smf_pebble_ready, self._on_smf_pebble_ready)
         self.framework.observe(self.on.database_relation_joined, self._on_smf_pebble_ready)
+        self.framework.observe(self.on.nrf_relation_joined, self._on_smf_pebble_ready)
         self.framework.observe(self._database.on.database_created, self._on_database_created)
         self.framework.observe(self._nrf_requires.on.nrf_available, self._on_nrf_available)
         self.framework.observe(self._upf_requires.on.upf_available, self._on_upf_available)
@@ -165,7 +166,7 @@ class SMFOperatorCharm(CharmBase):
         logger.info(f"Pushed {CONFIG_FILE_NAME} config file")
 
     def _write_uerouting_config_file(self) -> None:
-        with open("src/uerouting.conf", "r") as f:
+        with open("src/uerouting.yaml", "r") as f:
             content = f.read()
         self._container.push(path=f"{BASE_CONFIG_PATH}/{UE_ROUTING_FILE_NAME}", source=content)
         logger.info(f"Pushed {UE_ROUTING_FILE_NAME} config file")
@@ -288,7 +289,7 @@ class SMFOperatorCharm(CharmBase):
                     "smf": {
                         "override": "replace",
                         "startup": "enabled",
-                        "command": f"./smf --smfcfg {BASE_CONFIG_PATH}/{CONFIG_FILE_NAME} --uerouting {BASE_CONFIG_PATH}/{UE_ROUTING_FILE_NAME}",
+                        "command": f"./smf --smfcfg {BASE_CONFIG_PATH}/{CONFIG_FILE_NAME} --uerouting {BASE_CONFIG_PATH}/{UE_ROUTING_FILE_NAME}",  # noqa: E501
                         "environment": self._environment_variables,
                     },
                 },
