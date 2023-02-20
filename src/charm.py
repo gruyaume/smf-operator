@@ -316,6 +316,7 @@ class SMFOperatorCharm(CharmBase):
             "GRPC_VERBOSITY": "debug",
             "PFCP_PORT_UPF": str(PFCP_PORT),
             "POD_IP": str(self._pod_ip),
+            "MANAGED_BY_CONFIG_POD": "true",
         }
 
     @property
