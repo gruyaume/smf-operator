@@ -154,6 +154,7 @@ class TestCharm(unittest.TestCase):
                         "GRPC_VERBOSITY": "debug",
                         "PFCP_PORT_UPF": "8805",
                         "POD_IP": pod_ip,
+                        "MANAGED_BY_CONFIG_POD": "true",
                     },
                 }
             },
