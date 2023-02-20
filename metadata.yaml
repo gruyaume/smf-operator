@@ -28,3 +28,7 @@ requires:
     interface: nrf
   upf:
     interface: upf
+
+provides:
+  metrics-endpoint:
+    interface: prometheus_scrape

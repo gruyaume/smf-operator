@@ -12,6 +12,7 @@ from typing import Dict, Optional, Union
 from charms.data_platform_libs.v0.data_interfaces import DatabaseCreatedEvent, DatabaseRequires
 from charms.nrf_operator.v0.nrf import NRFAvailableEvent, NRFRequires
 from charms.observability_libs.v1.kubernetes_service_patch import KubernetesServicePatch
+from charms.prometheus_k8s.v0.prometheus_scrape import MetricsEndpointProvider
 from charms.upf_operator.v0.upf import UPFAvailableEvent, UPFRequires
 from jinja2 import Environment, FileSystemLoader
 from lightkube.models.core_v1 import ServicePort
@@ -28,6 +29,7 @@ UE_ROUTING_FILE_NAME = "uerouting.conf"
 DEFAULT_DATABASE_NAME = "free5gc"
 SMF_DATABASE_NAME = "sdcore_smf"
 PFCP_PORT = 8805
+PROMETHEUS_PORT = 9089
 
 
 class SMFOperatorCharm(CharmBase):
@@ -49,11 +51,19 @@ class SMFOperatorCharm(CharmBase):
         self.framework.observe(self._database.on.database_created, self._on_database_created)
         self.framework.observe(self._nrf_requires.on.nrf_available, self._on_nrf_available)
         self.framework.observe(self._upf_requires.on.upf_available, self._on_upf_available)
+        self._metrics_endpoint = MetricsEndpointProvider(
+            self,
+            jobs=[
+                {
+                    "static_configs": [{"targets": [f"*:{PROMETHEUS_PORT}"]}],
+                }
+            ],
+        )
         self._service_patcher = KubernetesServicePatch(
             charm=self,
             ports=[
                 ServicePort(name="pfcp", port=PFCP_PORT, protocol="UDP"),
-                ServicePort(name="prometheus-exporter", port=9089),
+                ServicePort(name="prometheus-exporter", port=PROMETHEUS_PORT),
                 ServicePort(name="sbi", port=29502),
             ],
         )
