@@ -7,7 +7,7 @@ configuration:
     brokerUri: sd-core-kafka-headless
     topicName: sdcore-data-source-smf
   mongodb:
-    name: {{ default_database_name }}
+    name: {{ database_name }}
     url: {{ database_url }}
   nfKafka:
     enable: false
@@ -28,7 +28,7 @@ configuration:
   serviceNameList:
   - nsmf-pdusession
   - nsmf-event-exposure
-  smfDBName: {{ smf_database_name }}
+  smfDBName: sdcore_smf
   smfName: SMF
   snssaiInfos:
   - dnnInfos:
@@ -48,10 +48,10 @@ configuration:
       UPF:
         interfaces:
         - endpoints:
-          - {{ upf_url }}
+          - upf
           interfaceType: N3
           networkInstance: internet
-        node_id: {{ upf_url }}
+        node_id: upf
         sNssaiUpfInfos:
         - dnnUpfInfoList:
           - dnn: internet
