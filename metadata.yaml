@@ -22,7 +22,9 @@ storage:
     minimum-size: 1M
 
 requires:
-  database:
+  default-database:
+    interface: mongodb_client
+  smf-database:
     interface: mongodb_client
   nrf:
     interface: nrf
