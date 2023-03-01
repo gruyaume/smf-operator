@@ -79,7 +79,7 @@ class SMFOperatorCharm(CharmBase):
             return
         self._write_uerouting_config_file()
 
-    def _write_config_file(self, default_database_url: str, nrf_url: str) -> None:
+    def _write_config_file(self, database_url: str, nrf_url: str) -> None:
         jinja2_environment = Environment(loader=FileSystemLoader("src/templates/"))
         template = jinja2_environment.get_template("smfcfg.yaml.j2")
         content = template.render(
@@ -88,7 +88,7 @@ class SMFOperatorCharm(CharmBase):
             pod_ip=self._pod_ip,
             default_database_name=DEFAULT_DATABASE_NAME,
             smf_database_name=SMF_DATABASE_NAME,
-            database_url=default_database_url,
+            database_url=database_url,
         )
         self._container.push(path=f"{BASE_CONFIG_PATH}/{CONFIG_FILE_NAME}", source=content)
         logger.info(f"Pushed {CONFIG_FILE_NAME} config file")
@@ -136,7 +136,7 @@ class SMFOperatorCharm(CharmBase):
             Dict: The database data.
         """
         if not self._default_database_is_available:
-            raise RuntimeError("Database is not available")
+            raise RuntimeError("Default database is not available")
         return self._default_database.fetch_relation_data()[self._default_database.relations[0].id]
 
     @property
@@ -147,7 +147,7 @@ class SMFOperatorCharm(CharmBase):
             Dict: The database data.
         """
         if not self._smf_database_is_available:
-            raise RuntimeError("Database is not available")
+            raise RuntimeError("SMF database is not available")
         return self._smf_database.fetch_relation_data()[self._smf_database.relations[0].id]
 
     @property
@@ -180,12 +180,16 @@ class SMFOperatorCharm(CharmBase):
             event.defer()
             return
         if not self._default_database_is_available:
-            self.unit.status = WaitingStatus("Waiting for database to be available")
+            self.unit.status = WaitingStatus("Waiting for default database to be available")
+            event.defer()
+            return
+        if not self._smf_database_is_available:
+            self.unit.status = WaitingStatus("Waiting for smf database to be available")
             event.defer()
             return
         if not self._config_file_is_written:
             self._write_config_file(
-                default_database_url=self._default_database_data["uris"].split(",")[0],
+                database_url=self._smf_database_data["uris"].split(",")[0],
                 nrf_url=self._nrf_requires.get_nrf_url(),
             )
         self._container.add_layer("smf", self._pebble_layer, combine=True)
