@@ -181,11 +181,12 @@ class SMFOperatorCharm(CharmBase):
             return
         if not self._default_database_is_available:
             self.unit.status = WaitingStatus("Waiting for default database to be available")
-            event.defer()
             return
         if not self._smf_database_is_available:
             self.unit.status = WaitingStatus("Waiting for smf database to be available")
-            event.defer()
+            return
+        if not self._nrf_data_is_available:
+            self.unit.status = WaitingStatus("Waiting for NRF data to be available")
             return
         if not self._config_file_is_written:
             self._write_config_file(
